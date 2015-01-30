@@ -48,8 +48,8 @@ Game.prototype.init = function() {
     this.fpsStart = new Date();
 
     this.spawners.push(new Spawner('2', 50, 10, 1));
-    // this.spawners.push(new Spawner('2', 100, 10, 1));
-    // this.spawners.push(new Spawner('2', 150, 10, 1));
+    this.spawners.push(new Spawner('2', 100, 10, 1));
+    this.spawners.push(new Spawner('2', 150, 10, 1));
 
     setInterval(function() {
       that.update();
