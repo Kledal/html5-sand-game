@@ -37,11 +37,9 @@ Game.prototype.init = function() {
   this.type_color['2'] = {r: 210, g: 180, b: 140};
   this.type_color['1'] = {r: 128, g: 128, b: 128};
   // Load canvas og context;
-  this.canvas = document.getElementById('game');
-  if (this.canvas.getContext) {
-    this.context = this.canvas.getContext('2d');
-    this.draw2d = new Draw2D(this.context);
-
+  this.canvas = document.getElementById('canvas');
+  this.draw2d = new Draw2D(this.canvas);
+  if (this.draw2d.ready) {
     this.canvas.addEventListener('mousedown', this.handle_mouse_down.bind(this), false);
     this.canvas.addEventListener('mouseup', this.handle_mouse_up.bind(this), false);
     this.canvas.addEventListener('mousemove', this.handle_mouse_move.bind(this), false);
@@ -50,15 +48,15 @@ Game.prototype.init = function() {
     this.fpsStart = new Date();
 
     this.spawners.push(new Spawner('2', 50, 10, 1));
-    this.spawners.push(new Spawner('2', 100, 10, 1));
-    this.spawners.push(new Spawner('2', 150, 10, 1));
+    // this.spawners.push(new Spawner('2', 100, 10, 1));
+    // this.spawners.push(new Spawner('2', 150, 10, 1));
 
     setInterval(function() {
       that.update();
     }, 10);
-
+    //
     setInterval(function() {
-      that.draw2d.clear();
+      //that.draw2d.clear();
       that.draw();
     }, 0);
 
@@ -135,12 +133,14 @@ Game.prototype.draw = function() {
   var game = this;
 
   // UI
-  this.context.fillStyle = "rgb(0,0,0)";
-  game.draw2d.text("Objects: " + this.objects.length, 0, 24);
-  game.draw2d.text("FPS: " + this.fps, 0, 12);
+  //this.context.fillStyle = "rgb(0,0,0)";
+  // game.draw2d.text("Objects: " + this.objects.length, 0, 24);
+  // game.draw2d.text("FPS: " + this.fps, 0, 12);
+
+  this.draw2d.beginDraw();
 
   _.each(this.objects, function(obj) {
-    game.draw2d.pixel(obj.x, obj.y, obj.r, obj.g, obj.b);
+    game.draw2d.pixel(obj);
   });
 
   this.framesSinceLast++;
