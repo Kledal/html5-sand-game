@@ -79,10 +79,10 @@ Game.prototype.update = function() {
     });
   }
 
-  _.each(this.objects, function(obj) {
-
+  for(var i = 0; i < this.objects.length; i++) {
+    var obj = this.objects[i];
     if (obj.static) {
-      return;
+      continue;
     }
 
     var old_x = obj.x;
@@ -93,7 +93,7 @@ Game.prototype.update = function() {
     var obj_right = game.exists_obj(old_x + 1, old_y + 1);
 
     if (!obj.falling && (obj_below && obj_left && obj_right)) {
-      return;
+      continue;
     }
 
     if (obj_below === false) {
@@ -113,18 +113,21 @@ Game.prototype.update = function() {
       }
 
     }
-  });
+
+    // Remove check
+    if (obj.y >= game.gameHeight) {
+      obj.remove = true;
+    }
+
+    if (obj.remove) {
+      game.remove_obj(obj.x, obj.y);
+    }
+  }
+
 
   // Remove objects that are not moving.
   this.objects = _.reject(this.objects, function(obj) {
-    var that = obj;
-    var bool = (obj.y >= game.gameHeight)  || obj.remove;
-
-    if (bool) {
-      game.remove_obj(obj.x, obj.y);
-    }
-
-    return bool;
+    return obj.remove;
   });
 
   this.framesSinceLast = 0;
@@ -139,9 +142,11 @@ Game.prototype.draw = function() {
   game.draw2d.text("Objects: " + this.objects.length, 0, 24);
   game.draw2d.text("FPS: " + this.fps, 0, 12);
 
-  _.each(this.objects, function(obj) {
+
+  for(var i = 0; i < this.objects.length; i++) {
+    var obj = this.objects[i];
     game.draw2d.pixel(obj.x, obj.y, obj.r, obj.g, obj.b);
-  });
+  }
 
   this.framesSinceLast++;
 };
