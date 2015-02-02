@@ -47,6 +47,13 @@ Game.prototype.init = function() {
     var that = this;
     this.fpsStart = new Date();
 
+    for(var x = 0; x < this.gameWidth; x++) {
+      this.obj_coords[x] = [];
+      for(var y = 0; y < this.gameHeight; y++) {
+        this.obj_coords[x][y] = '0';
+      }
+    }
+
     this.spawners.push(new Spawner('2', 50, 10, 1));
     this.spawners.push(new Spawner('2', 100, 10, 1));
     this.spawners.push(new Spawner('2', 150, 10, 1));
@@ -139,9 +146,10 @@ Game.prototype.draw = function() {
 
   this.draw2d.beginDraw();
 
-  _.each(this.objects, function(obj) {
-    game.draw2d.pixel(obj);
-  });
+  game.draw2d.drawObjects(this.obj_coords, this.objects.length);
+  // _.each(this.objects, function(obj) {
+  //   game.draw2d.pixel(obj);
+  // });
 
   this.framesSinceLast++;
 };

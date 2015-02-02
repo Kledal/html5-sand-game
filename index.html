@@ -27,31 +27,40 @@
   <script src="js/webgl-utils.js"></script>
 
   <script id="2d-vertex-shader" type="x-shader/x-vertex">
-  attribute vec2 a_position;
+  precision mediump float;
 
-  uniform vec2 u_resolution;
+  attribute vec2 position;
+  attribute float aColor;
+
+  uniform mat3 modelViewProjectionMatrix;
+
+  varying vec3 vColor;
+
+  // Credit to 'AHM' on StackOverflow
+  vec3 unpackColor(float f) {
+      vec3 color;
+
+      color.b = floor(f / (256.0 * 256.0));
+      color.g = floor((f - color.b * 256.0 * 256.0) / 256.0);
+      color.r = floor(mod(f, 256.0));
+
+      return color / 10.0;
+  }
 
   void main() {
-     // convert the rectangle from pixels to 0.0 to 1.0
-     vec2 zeroToOne = a_position / u_resolution;
+      vColor = unpackColor(aColor);
 
-     // convert from 0->1 to 0->2
-     vec2 zeroToTwo = zeroToOne * 2.0;
-
-     // convert from 0->2 to -1->+1 (clipspace)
-     vec2 clipSpace = zeroToTwo - 1.0;
-
-     gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+      gl_Position = vec4(modelViewProjectionMatrix * vec3(position, 1.0), 1.0);
   }
-  </script></script>
+  </script>
   <!-- fragment shader -->
   <script id="2d-fragment-shader" type="x-shader/x-fragment">
   precision mediump float;
 
-  uniform vec4 u_color;
+  varying vec3 vColor;
 
   void main() {
-     gl_FragColor = u_color;
+      gl_FragColor = vec4(vColor.rgb, 1.0);
   }
   </script>
 </body>
