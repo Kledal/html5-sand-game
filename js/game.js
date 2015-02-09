@@ -11,11 +11,6 @@ function Game() {
   this.spawners = [];
   this.spawners_on = true;
 
-  this.lastY = 5;
-
-  this.gameWidth = 300;
-  this.gameHeight = 299;
-
   this.framesSinceLast = 0;
   this.fps = 0;
   this.fpsStart;
@@ -27,21 +22,64 @@ function Game() {
   this.WALL = 1;
   this.SAND = 2;
   this.WATER = 4;
+  this.LIFE = 8;
+  this.FIRE = 16;
+  this.BURNING = 32;
+  this.LAVA = 64;
+  this.RESTING = 128;
+  this.OIL = 256;
+  this.GASOLINE = 512;
+
+  this.SPRING = (this.WALL | this.WATER);
+  this.OIL_WELL = (this.WALL | this.OIL);
+  this.LAVA = (this.SAND | this.FIRE);
 
   this.materials = {
+    space: {
+      density: 0
+    },
     wall: {
       color: [128, 128, 128]
     },
     sand: {
-      color: [210, 180, 140]
+      color: [210, 180, 140],
+      density: 15
     },
     water: {
-      color: [41, 128, 185]
+      color: [52, 152, 219],
+      liquid: true,
+      density: 5
+    },
+    life: {
+      color: [46, 204, 113],
+      bColors: [230, 126, 34, 192, 57, 43],
+      infect: true
+    },
+    fire: {
+      color: [231, 76, 60],
+      bColors: [230, 126, 34, 192, 57, 43],
+      infect: true
+    },
+    burning: {
+      color: [230, 126, 34],
+      bColors: [230, 126, 34, 192, 57, 43],
+      infect: true
+    },
+    oil: {
+      color: [139, 97, 42],
+      liquid: true,
+      density: 4
+    },
+    gasoline: {
+      color: [236, 240, 241],
+      liquid: true,
+      density: 3
     }
   };
 
   // Mouse Data
-  this.mouse_tool = this.SAND;
+  this.mouse_size = 5;
+  this.mouse_tool = this.WATER;
   this.mouseIsDown = false;
   this.mouseX = 0;
   this.mouseY = 0;
@@ -102,8 +140,8 @@ Game.prototype.setup = function() {
   while (x < this.gameWidth) {
     that.grid[x] = new Array(that.gameHeight);
     y = 0;
-    while(y < this.gameHeight) {
-      that.grid[x][y] = 0;
+    while(y < this.gameHeight + 1) {
+      that.grid[x][y] = this.NONE;
       y++;
     }
     x++;
@@ -124,115 +162,129 @@ Game.prototype.update = function() {
     }
   }
 
-  var y = this.gameHeight - 1;
+  var y = 0;
   var x = 0;
-  while(y > 0) {
-    x = 0;
-    while(x < this.gameWidth) {
+  while(x < this.gameWidth - 1) {
+    y = this.gameHeight;
+    while(y >= 0) {
       var s = this.grid[x][y];
-      if (s === this.NONE) {
-        x++;
+
+      if (s === this.NONE || s & this.RESTING) {
+        y--;
         continue;
       }
 
-      if (y == game.gameHeight - 1) {
-        x++;
+      if (y == 0 || y == this.gameHeight) {
+        if (y == 0 ) this.remove_obj(x, y);
+        y--;
         continue;
       }
 
-      var m = this.get_material(s);
+
+      var dbc = this.dot(x, y + 1),
+          m = this.get_material(s);
+
       if (s & this.SAND) {
-        // function(x, y, oldx, oldy, type)
-        this.move_obj(x, y + 1, x, y, s);
+        if (!dbc) {
+          if (Math.random()<0.8) { this.move_obj(x, y + 1, x, y, s); }
+        } else if (dbc && !this.dot(x-1,y + 1)) {
+          if (Math.random()<0.5) { this.move_obj(x-1, y + 1, x, y, s); }
+        } else if (dbc && !this.dot(x+1,y + 1)) {
+          if (Math.random()<0.5) { this.move_obj(x+1, y + 1, x, y, s); }
+        }
+
+      }
+      // Spring
+      if (s & this.WALL && s & this.WATER) {
+        this.infect(x, y, this.NONE, this.WATER);
+      }
+      if (s & this.WALL && s & this.OIL) {
+        this.infect(x, y, this.NONE, this.OIL);
+      }
+      if (s & this.SAND && s & this.FIRE) {
+        this.infect(x, y, this.NONE, this.BURNING);
       }
 
-      x++;
+      // if (m.infect) {
+
+        if (s & this.LIFE) {
+          this.infect(x, y, this.WATER, this.LIFE, 0.15);
+        }
+
+        if (s & this.FIRE || s & this.BURNING) {
+          this.infect(x, y, this.LIFE, this.BURNING);
+          this.infect(x, y, this.OIL, this.BURNING, 0.08);
+          this.infect(x, y, this.GASOLINE, this.BURNING, 0.6);
+        }
+      // }
+
+      // Turn fire into burning
+      if (s == this.FIRE) {
+        if(Math.random() > 0.75) this.grid[x][y] |= this.BURNING;
+      }
+
+      if (s & this.BURNING) {
+        var newY = y;
+        if(!this.dot(x, y-1)) {
+          if (Math.random()<0.4) {
+            newY--;
+            this.move_obj(x, newY, x, y, s);
+          }
+        }
+
+        if(Math.random() > 0.98) {
+          this.remove_obj(x, newY);
+        }
+      }
+
+
+      if (m.liquid) {
+        if (!dbc) {
+          if (Math.random()<0.8) { this.move_obj(x, y + 1, x, y, s); }
+        } else if (dbc && !this.dot(x-1,y)) {
+          if (Math.random()<0.5) { this.move_obj(x-1, y, x, y, s); }
+        } else if (dbc && !this.dot(x+1,y)) {
+          if (Math.random()<0.5) { this.move_obj(x+1, y, x, y, s); }
+        }
+      }
+
+      var um = this.get_material(this.grid[x][y-1]);
+      if (um !== undefined) {
+        if(typeof um.density !== 'undefined' && typeof m.density !== 'undefined') {
+            if(m.density < um.density) {
+                if(Math.random() < 0.7) {
+                  this.swap(x, y - 1, x, y);
+                }
+            }
+        }
+      }
+
+      y--;
     }
 
-    y--;
+    x++;
   }
-
-  // for(var i = 0; i < this.objects.length; i++) {
-  //   var obj = this.objects[i];
-  //   if (obj.static) {
-  //     continue;
-  //   }
-  //
-  //   // Remove check
-  //   if (obj.y >= game.gameHeight-1) {
-  //     //obj.remove = true;
-  //     continue;
-  //   }
-  //
-  //   if (obj.x <= 1 || obj.x == game.gameWidth - 2) {
-  //     continue;
-  //   }
-  //
-  //   var old_x = obj.x;
-  //   var old_y = obj.y;
-  //
-  //   var obj_below = game.exists_obj(old_x, old_y + 1);
-  //   var obj_left = game.exists_obj(old_x - 1, old_y + 1);
-  //   var obj_right = game.exists_obj(old_x + 1, old_y + 1);
-  //
-  //   if (obj.type == 3) {
-  //     var obj_real_left = game.exists_obj(old_x - 1, old_y);
-  //     var obj_real_left_left = game.exists_obj(old_x - 2, old_y);
-  //     var obj_real_right = game.exists_obj(old_x + 1, old_y);
-  //
-  //     if (!obj_below) {
-  //       obj.y++;
-  //     } else if (!obj_left) {
-  //       obj.x--;
-  //       obj.y++;
-  //     } else if (!obj_right) {
-  //       obj.x++;
-  //       obj.y++;
-  //     } else if (obj_left && obj_right) {
-  //       if (!obj_real_left) {
-  //         obj.x--;
-  //       } else if (!obj_real_right) {
-  //         obj.x++;
-  //       }
-  //     }
-  //
-  //
-  //     game.move_obj(obj.x, obj.y, old_x, old_y, obj.type);
-  //   }
-  //
-  //   if (obj.type === 2) {
-  //     if (obj_below === false) {
-  //       obj.y++;
-  //       game.move_obj(obj.x, obj.y, old_x, old_y, obj.type);
-  //     } else if (obj_below === true) {
-  //       if (obj_left === false) {
-  //         obj.y++;
-  //         obj.x--;
-  //         game.move_obj(obj.x, obj.y, old_x, old_y, obj.type);
-  //       } else if (obj_right === false) {
-  //         obj.y++;
-  //         obj.x++;
-  //         game.move_obj(obj.x, obj.y, old_x, old_y, obj.type);
-  //       } else {
-  //         obj.falling = false;
-  //       }
-  //
-  //     }
-  //   }
-  //
-  //   // if (obj.y >= game.gameHeight) {
-  //   //   obj.remove = true;
-  //   // }
-  //
-  //
-  //   if (obj.remove) {
-  //     game.remove_obj(obj.x, obj.y);
-  //   }
-  // }
 
   if (this.framesSinceLast > 100) {
     this.framesSinceLast = 0;
     this.fpsStart = new Date();
+  }
+};
+
+Game.prototype.infect = function(x, y, react, infect, speed) {
+  speed = speed || 0.1;
+
+  var coords = [ [x, y-1], [x, y+1], [x+1,y], [x-1,y], [x-1, y-1], [x-1, y+1], [x+1, y-1], [x+1, y+1] ];
+  var i = 0;
+  while(i<coords.length) {
+    var x = coords[i][0];
+    var y = coords[i][1];
+
+    if (this.dot(x, y) == react) {
+      if (Math.random()<speed) { this.grid[x][y] = infect; }
+    }
+
+    i++;
   }
 };
 
@@ -251,8 +303,13 @@ Game.prototype.draw = function() {
         continue;
       }
 
-      var obj = this.get_material(s);
-      var color = obj.color;
+      var m = this.get_material(s);
+      var color = m.color;
+      if (s & this.BURNING) {
+        if (Math.random() > 0.1) {
+          color = (Math.random() > 0.1) ? [m.bColors[0], m.bColors[1], m.bColors[2]] : [m.bColors[3], m.bColors[4], m.bColors[5]];
+        }
+      }
       game.draw2d.pixel(x, y, color[0], color[1], color[2]);
 
       x++;
@@ -263,11 +320,19 @@ Game.prototype.draw = function() {
   game.draw2d.doneDraw();
 
   // UI
-  this.context.fillStyle = "rgb(0,0,0)";
+  this.context.fillStyle = "rgb(255,255,255)";
   game.draw2d.text("Objects: " + this.particles, 0, 24);
   game.draw2d.text("FPS: " + this.fps, 0, 12);
 
   this.framesSinceLast++;
+};
+
+Game.prototype.fill_square = function(x, y, w, h, s) {
+  for(var xx = x; xx < x + w; xx++) {
+    for(var yy = y; yy < y + h; yy++) {
+      this.add_obj(xx, yy, s);
+    }
+  }
 };
 
 
@@ -278,13 +343,13 @@ Game.prototype.handle_mouse = function() {
     var y = game.mouseY;
 
     if (game.mouse_tool !== this.WALL) {
-      x += Math.round(Math.random() * 3);
+      //x += Math.round(Math.random() * 3);
     }
 
     if (game.mouse_tool !== this.NONE) {
-      var color = this.get_material(game.mouse_tool).color;
 
-      game.add_obj(x, y, game.mouse_tool);
+      this.fill_square(x, y, game.mouse_size, game.mouse_size, game.mouse_tool);
+
     } else {
       game.remove_obj(x, y);
     }
@@ -292,12 +357,24 @@ Game.prototype.handle_mouse = function() {
 }
 
 Game.prototype.get_material = function(s) {
+  if (s & this.NONE) { return this.materials.space};
+  if (s & this.WALL && s & this.FIRE) { return this.materials.fire};
   if (s & this.WALL) { return this.materials.wall};
+  if (s & this.FIRE) { return this.materials.fire};
   if (s & this.SAND) { return this.materials.sand};
   if (s & this.WATER) { return this.materials.water};
+  if (s & this.LIFE) { return this.materials.life};
+  if (s & this.BURNING) { return this.materials.burning};
+  if (s & this.OIL) { return this.materials.oil};
+  if (s & this.GASOLINE) { return this.materials.gasoline};
 }
 
 // Helpers
+
+Game.prototype.clear = function() {
+  this.setup();
+  this.particles = 0;
+};
 
 Game.prototype.handle_mouse_up = function(event) {
   this.mouseIsDown = false;
@@ -326,21 +403,29 @@ Game.prototype.add_obj = function(x, y, type) {
 };
 
 Game.prototype.remove_obj = function(x, y) {
+  if (this.grid[x][y] !== this.NONE) {
+    this.particles--;
+  }
   this.grid[x][y] = this.NONE;
-  this.particles--;
 };
 
+Game.prototype.swap = function(x, y, oldx, oldy) {
+  var temp = this.grid[x][y];
+  var temp1 = this.grid[oldx][oldy];
+  this.grid[x][y] = temp1;
+  this.grid[oldx][oldy] = temp;
+}
 
 Game.prototype.move_obj = function(x, y, oldx, oldy, type) {
   this.remove_obj(oldx, oldy);
   this.add_obj(x, y, type);
+
+  //this.wakeSurrounds(x, y);
 };
 
-Game.prototype.exists_obj = function(x, y) {
-  if (this.grid[x][y] === this.NONE) {
-    return false;
-  } else {
-    return true;
+Game.prototype.dot = function(x, y) {
+  if (x < 0 || x > this.gameWidth || y < 0 || y > this.gameHeight) {
+    return this.WALL;
   }
-
+  return this.grid[x][y];
 };
