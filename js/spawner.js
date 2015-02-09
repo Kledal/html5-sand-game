@@ -5,14 +5,7 @@ function Spawner(type, x, y, random) {
   this.random = random;
 }
 
-Spawner.prototype.update = function(game) {
-  var x = this.base_x;
-  var y = this.base_y;
-
-  if (this.random) {
-    x += Math.round(Math.random() * 3);
-  }
-
+Spawner.prototype.add_obj = function(x, y, game) {
   var color = game.type_color[this.type];
   var obj = {
     x: x,
@@ -21,8 +14,16 @@ Spawner.prototype.update = function(game) {
     remove: false,
     type: this.type,
     r: color.r, g: color.g, b: color.b};
-    //210,180,140
-
   game.add_obj(x, y, this.type);
-  game.objects.push(obj);
+};
+
+Spawner.prototype.update = function(game) {
+  var x = this.base_x;
+  var y = this.base_y;
+
+  if (this.random) {
+    x += Math.round(Math.random() * 10 - 1.5);
+  }
+
+  this.add_obj(x, y, game);
 }

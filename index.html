@@ -7,12 +7,49 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore-min.js"></script>
+
+  <style>
+    html {
+      cursor: default;
+      background-color: #fff;
+    }
+    #game {
+      float: left;
+      background-color: #000;
+    }
+    .commands {
+      float: left;
+    }
+  </style>
 </head>
 
 <body>
-  <canvas width='500' height='500' id='game'>
+  <canvas width='400' height='400' id='game'>
     Your browser does not support canvas - go get Chrome!
   </canvas>
+
+  <div class="commands">
+    <p>
+      <button onClick="test.mouse_size = 20;">Large brush</button>
+      <button onClick="test.mouse_size = 5;">Medium brush</button>
+      <button onClick="test.mouse_size = 2;">Small brush</button>
+    </p>
+    <p>
+      <button onClick="test.mouse_tool = test.SAND;">Sand</button>
+      <button onClick="test.mouse_tool = test.WALL;">Wall</button>
+      <button onClick="test.mouse_tool = test.WATER;">Water</button>
+      <button onClick="test.mouse_tool = test.SPRING;">Spring</button>
+      <button onClick="test.mouse_tool = test.LIFE;">Life</button>
+      <button onClick="test.mouse_tool = test.FIRE;">Fire</button>
+      <button onClick="test.mouse_tool = test.LAVA;">Lava</button>
+      <button onClick="test.mouse_tool = test.OIL;">Oil</button>
+      <button onClick="test.mouse_tool = test.OIL_WELL;">Oil well</button>
+      <button onClick="test.mouse_tool = test.GASOLINE;">Gasoline</button>
+    </p>
+    <p>
+      <button onClick="test.clear();">Clear</button>
+    </p>
+  </div>
 
   <script>
   var test;
