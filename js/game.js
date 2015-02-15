@@ -1,8 +1,28 @@
 "use strict";
+
+/*
+ Elements
+*/
+var NONE = 0;
+var WALL = 1;
+var SAND = 2;
+var WATER = 4;
+var LIFE = 8;
+var FIRE = 16;
+var BURNING = 32;
+var LAVA = 64;
+var RESTING = 128;
+var OIL = 256;
+var GASOLINE = 512;
+var SPRING = (WALL | WATER);
+var OIL_WELL = (WALL | OIL);
+var LAVA = (SAND | FIRE);
+
 function Game() {
   this.canvas;
   this.context;
 
+  this.mouse;
   this.draw2d;
 
   this.grid = [[]];
@@ -17,22 +37,6 @@ function Game() {
 
   // Type color
   this.type_color = {};
-
-  this.NONE = 0;
-  this.WALL = 1;
-  this.SAND = 2;
-  this.WATER = 4;
-  this.LIFE = 8;
-  this.FIRE = 16;
-  this.BURNING = 32;
-  this.LAVA = 64;
-  this.RESTING = 128;
-  this.OIL = 256;
-  this.GASOLINE = 512;
-
-  this.SPRING = (this.WALL | this.WATER);
-  this.OIL_WELL = (this.WALL | this.OIL);
-  this.LAVA = (this.SAND | this.FIRE);
 
   this.materials = {
     space: {
@@ -77,13 +81,6 @@ function Game() {
     }
   };
 
-  // Mouse Data
-  this.mouse_size = 5;
-  this.mouse_tool = this.WATER;
-  this.mouseIsDown = false;
-  this.mouseX = 0;
-  this.mouseY = 0;
-
   this.init();
 }
 
@@ -96,26 +93,13 @@ Game.prototype.init = function() {
     this.gameHeight = this.canvas.height;
 
     this.context = this.canvas.getContext('2d');
+    this.mouse = new Mouse(this.canvas);
     this.draw2d = new Draw2D(this.context, this.gameWidth, this.gameHeight);
-
-    this.canvas.addEventListener('mousedown', this.handle_mouse_down.bind(this), false);
-    this.canvas.addEventListener('mouseup', this.handle_mouse_up.bind(this), false);
-    this.canvas.addEventListener('mousemove', this.handle_mouse_move.bind(this), false);
 
     var that = this;
     this.fpsStart = new Date();
 
     this.setup();
-
-    // this.spawners.push(new Spawner(2, 50, 10, 1));
-    // this.spawners.push(new Spawner(2, 100, 10, 1));
-    // this.spawners.push(new Spawner(3, 150, 10, 1));
-    // this.spawners.push(new Spawner(3, 200, 10, 1));
-    // this.spawners.push(new Spawner(3, 250, 10, 1));
-    // this.spawners.push(new Spawner(3, 300, 10, 1));
-    // this.spawners.push(new Spawner(3, 350, 10, 1));
-    // this.spawners.push(new Spawner(2, 400, 10, 1));
-    // this.spawners.push(new Spawner(2, 450, 10, 1));
 
     setInterval(function() {
       that.update();
@@ -127,7 +111,6 @@ Game.prototype.init = function() {
     };
 
     window.requestAnimationFrame(setupDraw);
-
   }
 };
 
@@ -140,7 +123,7 @@ Game.prototype.setup = function() {
     that.grid[x] = new Array(that.gameHeight);
     y = 0;
     while(y < this.gameHeight + 1) {
-      that.grid[x][y] = this.NONE;
+      that.grid[x][y] = NONE;
       y++;
     }
     x++;
@@ -171,7 +154,7 @@ Game.prototype.update = function() {
       this.draw2d.pixel(x, y, 0, 0, 0);
       var s = this.grid[x][y];
 
-      if (s === this.NONE || s & this.RESTING) {
+      if (s === NONE || s & RESTING) {
         y--;
         continue;
       }
@@ -187,14 +170,14 @@ Game.prototype.update = function() {
           m = this.get_material(s);
       var color = m.color;
 
-      if (s & this.BURNING) {
+      if (s & BURNING) {
         if (Math.random() > 0.1) {
           color = (Math.random() > 0.1) ? [m.bColors[0], m.bColors[1], m.bColors[2]] : [m.bColors[3], m.bColors[4], m.bColors[5]];
         }
       }
       this.draw2d.pixel(x, y, color[0], color[1], color[2]);
 
-      if (s & this.SAND) {
+      if (s & SAND) {
         if (!dbc) {
           if (Math.random()<0.8) { this.move_obj(x, y + 1, x, y, s); }
         } else if (dbc && !this.dot(x-1,y + 1)) {
@@ -205,38 +188,38 @@ Game.prototype.update = function() {
 
       }
       // Spring
-      if (s & this.WALL && s & this.WATER) {
-        this.infect(x, y, this.NONE, this.WATER);
+      if (s & WALL && s & WATER) {
+        this.infect(x, y, NONE, WATER);
       }
-      if (s & this.WALL && s & this.OIL) {
-        this.infect(x, y, this.NONE, this.OIL);
+      if (s & WALL && s & OIL) {
+        this.infect(x, y, NONE, OIL);
       }
-      if (s & this.SAND && s & this.FIRE) {
-        this.infect(x, y, this.NONE, this.BURNING);
+      if (s & SAND && s & FIRE) {
+        this.infect(x, y, NONE, BURNING);
       }
 
       // if (m.infect) {
 
-        if (s & this.WATER) {
-          if(Math.random() > 0.2) this.get_infected(x, y, this.LIFE, this.LIFE);
+        if (s & WATER) {
+          if(Math.random() > 0.2) this.get_infected(x, y, LIFE, LIFE);
         }
-        // if (s & this.LIFE) {
-        //   this.infect(x, y, this.WATER, this.LIFE, 0.15);
+        // if (s & LIFE) {
+        //   this.infect(x, y, WATER, LIFE, 0.15);
         // }
 
-        if (s & this.FIRE || s & this.BURNING) {
-          this.infect(x, y, this.LIFE, this.BURNING);
-          this.infect(x, y, this.OIL, this.BURNING, 0.08);
-          this.infect(x, y, this.GASOLINE, this.BURNING, 0.6);
+        if (s & FIRE || s & BURNING) {
+          this.infect(x, y, LIFE, BURNING);
+          this.infect(x, y, OIL, BURNING, 0.08);
+          this.infect(x, y, GASOLINE, BURNING, 0.6);
         }
       // }
 
       // Turn fire into burning
-      if (s == this.FIRE) {
-        if(Math.random() > 0.75) this.grid[x][y] |= this.BURNING;
+      if (s == FIRE) {
+        if(Math.random() > 0.75) this.grid[x][y] |= BURNING;
       }
 
-      if (s & this.BURNING) {
+      if (s & BURNING) {
         var newY = y;
         if(!this.dot(x, y-1)) {
           if (Math.random()<0.4) {
@@ -254,10 +237,10 @@ Game.prototype.update = function() {
       if (m.liquid) {
         if (!dbc) {
           if (Math.random()<0.8) { this.move_obj(x, y + 1, x, y, s); }
-        } else if (dbc && !this.dot(x-1,y)) {
-          if (Math.random()>0.1) { this.move_obj(x-1, y, x, y, s); }
-        } else if (dbc && !this.dot(x+1,y)) {
-          if (Math.random()>0.1) { this.move_obj(x+1, y, x, y, s); }
+        } else if (dbc && Math.random()>0.1 && !this.dot(x-1,y)) {
+          this.move_obj(x-1, y, x, y, s);
+        } else if (dbc && Math.random()>0.2 && !this.dot(x+1,y)) {
+          this.move_obj(x+1, y, x, y, s);
         }
       }
 
@@ -322,32 +305,6 @@ Game.prototype.get_infected = function(x, y, search, replace, speed) {
 Game.prototype.draw = function() {
   var game = this;
 
-  // var x = 0;
-  // var y = 0;
-  // while(y < this.gameHeight) {
-  //   x = 0;
-  //   while(x < this.gameWidth) {
-  //     var s = this.grid[x][y];
-  //
-  //     if (s === 0) {
-  //       x++;
-  //       continue;
-  //     }
-  //
-  //     var m = this.get_material(s);
-  //     var color = m.color;
-  //     if (s & this.BURNING) {
-  //       if (Math.random() > 0.1) {
-  //         color = (Math.random() > 0.1) ? [m.bColors[0], m.bColors[1], m.bColors[2]] : [m.bColors[3], m.bColors[4], m.bColors[5]];
-  //       }
-  //     }
-  //     game.draw2d.pixel(x, y, color[0], color[1], color[2]);
-  //
-  //     x++;
-  //   }
-  //   y++;
-  // }
-
   game.draw2d.doneDraw();
 
   // UI
@@ -368,36 +325,26 @@ Game.prototype.fill_square = function(x, y, w, h, s) {
 
 
 Game.prototype.handle_mouse = function() {
-  var game = this;
-  if (game.mouseIsDown) {
-    var x = game.mouseX;
-    var y = game.mouseY;
-
-    if (game.mouse_tool !== this.WALL) {
-      //x += Math.round(Math.random() * 3);
-    }
-
-    if (game.mouse_tool !== this.NONE) {
-
-      this.fill_square(x, y, game.mouse_size, game.mouse_size, game.mouse_tool);
-
+  if (this.mouse.is_down) {
+    if (this.mouse.tool !== NONE) {
+      this.fill_square(this.mouse.x, this.mouse.y, this.mouse.size, this.mouse.size, this.mouse.tool);
     } else {
-      game.remove_obj(x, y);
+      this.remove_obj(this.mouse.x, this.mouse.y);
     }
   }
 }
 
 Game.prototype.get_material = function(s) {
-  if (s & this.NONE) { return this.materials.space};
-  if (s & this.WALL && s & this.FIRE) { return this.materials.fire};
-  if (s & this.WALL) { return this.materials.wall};
-  if (s & this.FIRE) { return this.materials.fire};
-  if (s & this.SAND) { return this.materials.sand};
-  if (s & this.WATER) { return this.materials.water};
-  if (s & this.LIFE) { return this.materials.life};
-  if (s & this.BURNING) { return this.materials.burning};
-  if (s & this.OIL) { return this.materials.oil};
-  if (s & this.GASOLINE) { return this.materials.gasoline};
+  if (s & NONE) { return this.materials.space};
+  if (s & WALL && s & FIRE) { return this.materials.fire};
+  if (s & WALL) { return this.materials.wall};
+  if (s & FIRE) { return this.materials.fire};
+  if (s & SAND) { return this.materials.sand};
+  if (s & WATER) { return this.materials.water};
+  if (s & LIFE) { return this.materials.life};
+  if (s & BURNING) { return this.materials.burning};
+  if (s & OIL) { return this.materials.oil};
+  if (s & GASOLINE) { return this.materials.gasoline};
 }
 
 // Helpers
@@ -407,37 +354,18 @@ Game.prototype.clear = function() {
   this.particles = 0;
 };
 
-Game.prototype.handle_mouse_up = function(event) {
-  this.mouseIsDown = false;
-};
-Game.prototype.handle_mouse_down = function(event) {
-  this.mouseIsDown = true;
-};
-Game.prototype.get_mouse_pos = function(evt) {
-  var rect = this.canvas.getBoundingClientRect();
-  return {
-    x: evt.clientX - rect.left,
-    y: evt.clientY - rect.top
-  };
-};
-Game.prototype.handle_mouse_move = function(event) {
-  var pos = this.get_mouse_pos(event);
-  this.mouseX = pos.x;
-  this.mouseY = pos.y;
-};
-
 Game.prototype.add_obj = function(x, y, type) {
-  if (this.grid[x][y] === this.NONE) {
+  if (this.grid[x][y] === NONE) {
     this.particles++;
   }
   this.grid[x][y] = type;
 };
 
 Game.prototype.remove_obj = function(x, y) {
-  if (this.grid[x][y] !== this.NONE) {
+  if (this.grid[x][y] !== NONE) {
     this.particles--;
   }
-  this.grid[x][y] = this.NONE;
+  this.grid[x][y] = NONE;
 };
 
 Game.prototype.swap = function(x, y, oldx, oldy) {
@@ -456,7 +384,7 @@ Game.prototype.move_obj = function(x, y, oldx, oldy, type) {
 
 Game.prototype.dot = function(x, y) {
   if (x < 0 || x > this.gameWidth || y < 0 || y > this.gameHeight) {
-    return this.WALL;
+    return WALL;
   }
   return this.grid[x][y];
 };
